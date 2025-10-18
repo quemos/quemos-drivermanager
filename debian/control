@@ -1,0 +1,13 @@
+Source: quemos-drivermanager
+Section: utils
+Priority: optional
+Maintainer: Your Name <you@example.org>
+Build-Depends: make
+Standards-Version: 1.0
+Homepage: https://github.com/quemos
+
+Package: quemos-drivermanager
+Architecture: any
+Depends: libc6, pciutils, usbutils
+Description: quemos-drivermanager
+  quemos-drivermanager

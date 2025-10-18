@@ -1,0 +1,137 @@
+#!/bin/bash
+# 🌍 QuemOS Automatic Hardware & Driver Updater (Dual Language)
+# Detects virtualization and skips physical GPU driver installs if VM detected
+
+clear
+echo "=== 🌍 QuemOS Driver Manager / QuemOS Sürücü Yöneticisi ==="
+echo
+echo "Select Language / Dil Seçin:"
+echo "[1] English"
+echo "[2] Türkçe"
+read -p "Choice / Seçim: " lang
+
+if [[ "$lang" == "2" ]]; then
+    LANG="TR"
+else
+    LANG="EN"
+fi
+
+clear
+if [[ "$LANG" == "EN" ]]; then
+    echo "=== 🔧 QuemOS Automatic Hardware & Driver Updater ==="
+    echo "📡 Scanning hardware..."
+else
+    echo "=== 🔧 QuemOS Otomatik Donanım ve Sürücü Güncelleyici ==="
+    echo "📡 Donanımlar taranıyor..."
+fi
+
+GPU=$(lspci | grep -E "VGA|3D|Display")
+NET=$(lspci | grep -i network)
+AUDIO=$(lspci | grep -i audio)
+BT=$(lsusb | grep -i bluetooth)
+TOUCH=$(grep -i "touch" /proc/bus/input/devices 2>/dev/null)
+USB=$(lsusb | grep -v Bluetooth)
+VM=$(systemd-detect-virt 2>/dev/null)
+
+echo
+[ -n "$GPU" ] && ([ "$LANG" == "EN" ] && echo "🎮 GPU: $GPU" || echo "🎮 Ekran Kartı: $GPU")
+[ -n "$NET" ] && ([ "$LANG" == "EN" ] && echo "🌐 Network: $NET" || echo "🌐 Ağ: $NET")
+[ -n "$AUDIO" ] && ([ "$LANG" == "EN" ] && echo "🔊 Audio: $AUDIO" || echo "🔊 Ses: $AUDIO")
+[ -n "$BT" ] && ([ "$LANG" == "EN" ] && echo "🩵 Bluetooth: $BT" || echo "🩵 Bluetooth: $BT")
+[ -n "$TOUCH" ] && ([ "$LANG" == "EN" ] && echo "🖐️ Touchscreen detected" || echo "🖐️ Dokunmatik ekran bulundu")
+[ -n "$USB" ] && ([ "$LANG" == "EN" ] && echo "🔌 USB devices detected" || echo "🔌 USB aygıtları bulundu")
+[ -n "$VM" ] && ([ "$LANG" == "EN" ] && echo "💻 Virtualization: $VM" || echo "💻 Sanallaştırma: $VM")
+echo
+
+INSTALL_LIST=""
+
+# === GPU ===
+if [ "$VM" != "none" ] && [ -n "$VM" ]; then
+    if [[ "$LANG" == "EN" ]]; then
+        echo "💻 Virtual machine detected → installing guest additions only"
+    else
+        echo "💻 Sanal makine tespit edildi → yalnızca misafir sürücüleri kurulacak"
+    fi
+    case "$VM" in
+        kvm|qemu)
+            INSTALL_LIST="$INSTALL_LIST spice-vdagent qemu-guest-agent"
+            ;;
+        oracle)
+            INSTALL_LIST="$INSTALL_LIST virtualbox-guest-utils virtualbox-guest-x11"
+            ;;
+        vmware)
+            INSTALL_LIST="$INSTALL_LIST open-vm-tools-desktop"
+            ;;
+    esac
+else
+    if echo "$GPU" | grep -qi nvidia; then
+        INSTALL_LIST="$INSTALL_LIST nvidia-driver"
+    elif echo "$GPU" | grep -Eqi "amd|ati"; then
+        INSTALL_LIST="$INSTALL_LIST firmware-amd-graphics"
+    elif echo "$GPU" | grep -qi intel; then
+        INSTALL_LIST="$INSTALL_LIST firmware-misc-nonfree"
+    fi
+fi
+
+# === Network ===
+if echo "$NET" | grep -qi wireless; then
+    INSTALL_LIST="$INSTALL_LIST firmware-iwlwifi"
+elif echo "$NET" | grep -qi realtek; then
+    INSTALL_LIST="$INSTALL_LIST firmware-realtek"
+elif echo "$NET" | grep -qi broadcom; then
+    INSTALL_LIST="$INSTALL_LIST firmware-brcm80211"
+else
+    INSTALL_LIST="$INSTALL_LIST firmware-linux"
+fi
+
+# === Audio ===
+if [ -n "$AUDIO" ]; then
+    INSTALL_LIST="$INSTALL_LIST alsa-utils pulseaudio pavucontrol"
+fi
+
+# === Bluetooth ===
+if [ -n "$BT" ]; then
+    INSTALL_LIST="$INSTALL_LIST bluez bluez-firmware firmware-realtek"
+fi
+
+# === Touchscreen ===
+if [ -n "$TOUCH" ]; then
+    INSTALL_LIST="$INSTALL_LIST xserver-xorg-input-libinput"
+fi
+
+# === USB ===
+if [ -n "$USB" ]; then
+    INSTALL_LIST="$INSTALL_LIST usbutils"
+fi
+
+# === General Firmware ===
+INSTALL_LIST="$INSTALL_LIST firmware-linux firmware-linux-nonfree firmware-misc-nonfree"
+
+echo
+if [[ "$LANG" == "EN" ]]; then
+    echo "🔍 The following packages will be installed/updated:"
+else
+    echo "🔍 Kurulacak / güncellenecek tüm paketler:"
+fi
+
+echo "$INSTALL_LIST"
+echo
+
+if [[ "$LANG" == "EN" ]]; then
+    read -p "Proceed with installation? [y/N]: " confirm
+else
+    read -p "Kuruluma başlamak istiyor musunuz? [y/N]: " confirm
+fi
+
+if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    [[ "$LANG" == "EN" ]] && echo "🔄 Updating APT..." || echo "🔄 APT güncelleniyor..."
+    apt update -y
+    echo
+    [[ "$LANG" == "EN" ]] && echo "🔧 Installing/updating driver packages..." || echo "🔧 Sürücü ve firmware paketleri yükleniyor..."
+    apt install -y $INSTALL_LIST
+    echo
+    [[ "$LANG" == "EN" ]] && echo "✅ All drivers installed/updated successfully!" || echo "✅ Tüm donanım sürücüleri yüklendi veya güncellendi!"
+    [[ "$LANG" == "EN" ]] && echo "🔁 A reboot is recommended." || echo "🔁 Yeniden başlatma önerilir."
+else
+    [[ "$LANG" == "EN" ]] && echo "❌ Operation cancelled." || echo "❌ İşlem iptal edildi."
+fi

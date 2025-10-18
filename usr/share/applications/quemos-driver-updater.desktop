@@ -1,0 +1,20 @@
+[Desktop Entry]
+Categories=System;Settings;
+Comment[tr_TR]=Sistemdeki tüm donanım sürücülerini otomatik olarak günceller
+Comment=Sistemdeki tüm donanım sürücülerini otomatik olarak günceller
+Comment[en]=Automatically updates all hardware drivers
+Exec=gnome-terminal -- bash -c 'sudo /usr/bin/quemos-driver-updater; exec bash'
+GenericName[tr_TR]=
+GenericName=
+Icon=preferences-system
+MimeType=
+Name[tr_TR]=QuemOS Sürücü Güncelleyici
+Name=QuemOS Sürücü Güncelleyici
+Name[en]=QuemOS Driver Updater
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-KDE-SubstituteUID=false
+X-KDE-Username=
