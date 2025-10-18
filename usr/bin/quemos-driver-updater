@@ -68,8 +68,9 @@ else
         INSTALL_LIST="$INSTALL_LIST nvidia-driver"
     elif echo "$GPU" | grep -Eqi "amd|ati"; then
         INSTALL_LIST="$INSTALL_LIST firmware-amd-graphics"
-    elif echo "$GPU" | grep -qi intel; then
-        INSTALL_LIST="$INSTALL_LIST firmware-misc-nonfree"
+    elif echo "$GPU" | grep -Eqi "intel|uhd|iris|xe|integrated graphics"; then
+        INSTALL_LIST="$INSTALL_LIST xserver-xorg-video-intel intel-media-va-driver-non-free mesa-utils firmware-misc-nonfree"
+        [[ "$LANG" == "EN" ]] && echo "💡 Intel GPU detected → Intel drivers added" || echo "💡 Intel GPU bulundu → Intel sürücüleri eklendi"
     fi
 fi
 
@@ -125,10 +126,10 @@ fi
 
 if [[ "$confirm" =~ ^[Yy]$ ]]; then
     [[ "$LANG" == "EN" ]] && echo "🔄 Updating APT..." || echo "🔄 APT güncelleniyor..."
-    apt update -y
+    apt-get update -y
     echo
     [[ "$LANG" == "EN" ]] && echo "🔧 Installing/updating driver packages..." || echo "🔧 Sürücü ve firmware paketleri yükleniyor..."
-    apt install -y $INSTALL_LIST
+    apt-get install -y $INSTALL_LIST
     echo
     [[ "$LANG" == "EN" ]] && echo "✅ All drivers installed/updated successfully!" || echo "✅ Tüm donanım sürücüleri yüklendi veya güncellendi!"
     [[ "$LANG" == "EN" ]] && echo "🔁 A reboot is recommended." || echo "🔁 Yeniden başlatma önerilir."
